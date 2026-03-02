@@ -146,3 +146,37 @@ class ConvertPILImage(T.Transform):
 
     def transform(self, inpt: Any, params: Dict[str, Any]) -> Any:
         return self._transform(inpt, params)
+
+
+@register()
+class ConvertToSingleChannel(T.Transform):
+    _transformed_types = (
+        Image,
+        torch.Tensor,
+    )
+
+    def __init__(self, keepdim=True) -> None:
+        super().__init__()
+        self.keepdim = keepdim
+
+    def _transform(self, inpt: Any, params: Dict[str, Any]) -> Any:
+        if not torch.is_tensor(inpt):
+            return inpt
+
+        if inpt.ndim < 3:
+            return inpt
+
+        channels = inpt.shape[-3]
+        if channels == 1:
+            out = inpt
+        elif channels == 3:
+            out = F.rgb_to_grayscale(inpt, num_output_channels=1)
+            if not self.keepdim:
+                out = out.squeeze(-3)
+        else:
+            out = inpt.mean(dim=-3, keepdim=self.keepdim)
+
+        return Image(out)
+
+    def transform(self, inpt: Any, params: Dict[str, Any]) -> Any:
+        return self._transform(inpt, params)

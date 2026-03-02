@@ -15,6 +15,7 @@ from ._transforms import (
     Normalize,
     ConvertBoxes,
     ConvertPILImage,
+    ConvertToSingleChannel,
 )
 from .container import Compose
 from .mosaic import Mosaic

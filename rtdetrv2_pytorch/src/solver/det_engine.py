@@ -119,14 +119,25 @@ def evaluate(model: torch.nn.Module, criterion: torch.nn.Module, postprocessor, 
 
         outputs = model(samples)
 
+        if 'segm' in iou_types:
+            has_pred_masks = 'pred_masks' in outputs
+            has_segm_postprocessor = isinstance(postprocessor, dict) and 'segm' in postprocessor
+            if not has_pred_masks or not has_segm_postprocessor:
+                raise RuntimeError(
+                    "COCO segm evaluation requested, but model/postprocessor is not segmentation-ready. "
+                    "Require model outputs with 'pred_masks' and a dict postprocessor containing both 'bbox' and 'segm'."
+                )
+
         # TODO (lyuwenyu), fix dataset converted using `convert_to_coco_api`?
         orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)
-        
-        results = postprocessor(outputs, orig_target_sizes)
 
-        # if 'segm' in postprocessor.keys():
-        #     target_sizes = torch.stack([t["size"] for t in targets], dim=0)
-        #     results = postprocessor['segm'](results, outputs, orig_target_sizes, target_sizes)
+        if isinstance(postprocessor, dict):
+            results = postprocessor['bbox'](outputs, orig_target_sizes)
+            if 'segm' in postprocessor and 'pred_masks' in outputs:
+                target_sizes = torch.stack([t["size"] for t in targets], dim=0)
+                results = postprocessor['segm'](results, outputs, orig_target_sizes, target_sizes)
+        else:
+            results = postprocessor(outputs, orig_target_sizes)
 
         res = {target['image_id'].item(): output for target, output in zip(targets, results)}
         if coco_evaluator is not None:

@@ -14,8 +14,11 @@ import faster_coco_eval.core.mask as mask_util
 
 def convert_coco_poly_to_mask(segmentations, height, width):
     masks = []
-    for polygons in segmentations:
-        rles = mask_util.frPyObjects(polygons, height, width)
+    for segmentation in segmentations:
+        if isinstance(segmentation, list):
+            rles = mask_util.frPyObjects(segmentation, height, width)
+        else:
+            rles = [segmentation]
         mask = mask_util.decode(rles)
         if len(mask.shape) < 3:
             mask = mask[..., None]

@@ -160,6 +160,7 @@ class PResNet(nn.Module):
     def __init__(
         self, 
         depth, 
+        in_channels=3,
         variant='d', 
         num_stages=4, 
         return_idx=[0, 1, 2, 3], 
@@ -173,12 +174,12 @@ class PResNet(nn.Module):
         ch_in = 64
         if variant in ['c', 'd']:
             conv_def = [
-                [3, ch_in // 2, 3, 2, "conv1_1"],
+                [in_channels, ch_in // 2, 3, 2, "conv1_1"],
                 [ch_in // 2, ch_in // 2, 3, 1, "conv1_2"],
                 [ch_in // 2, ch_in, 3, 1, "conv1_3"],
             ]
         else:
-            conv_def = [[3, ch_in, 7, 2, "conv1_1"]]
+            conv_def = [[in_channels, ch_in, 7, 2, "conv1_1"]]
 
         self.conv1 = nn.Sequential(OrderedDict([
             (name, ConvNormLayer(cin, cout, k, s, act=act)) for cin, cout, k, s, name in conv_def
@@ -215,8 +216,37 @@ class PResNet(nn.Module):
                 state = torch.hub.load_state_dict_from_url(donwload_url[depth], map_location='cpu')
             else:
                 state = torch.load(pretrained, map_location='cpu')
+            state = self._adapt_input_conv_weights(state)
             self.load_state_dict(state)
             print(f'Load PResNet{depth} state_dict')
+
+    def _adapt_input_conv_weights(self, state):
+        model_state = self.state_dict()
+        for key, value in state.items():
+            if key not in model_state:
+                continue
+            if value.ndim != 4 or model_state[key].ndim != 4:
+                continue
+
+            pretrained_in = value.shape[1]
+            target_in = model_state[key].shape[1]
+            if pretrained_in == target_in:
+                continue
+
+            if pretrained_in == 3 and target_in == 1:
+                state[key] = value.mean(dim=1, keepdim=True)
+            elif pretrained_in == 3 and target_in > 1:
+                rep = (target_in + pretrained_in - 1) // pretrained_in
+                expanded = value.repeat(1, rep, 1, 1)[:, :target_in, :, :]
+                state[key] = expanded * (pretrained_in / target_in)
+            else:
+                raise RuntimeError(
+                    f'Cannot adapt pretrained conv weights for {key}: '
+                    f'checkpoint in_channels={pretrained_in}, target in_channels={target_in}'
+                )
+            break
+
+        return state
 
     def _freeze_parameters(self, m: nn.Module):
         for p in m.parameters():

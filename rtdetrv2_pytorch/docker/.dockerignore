@@ -1,0 +1,11 @@
+**/.venv/
+**/.git/
+**/__pycache__/
+**/.idea/
+**/.vscode/
+**/.wheels/
+**/inference_out/
+**/exported_models/
+**/dataset/
+**/weights/
+model.onnx*

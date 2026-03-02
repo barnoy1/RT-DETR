@@ -1,0 +1,34 @@
+services:
+  rtdetr-container:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      additional_contexts:
+        host_programs: ${HOST_PROGRAMS_DIR}
+      network: host
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL}
+    image: rtdetr-v2:25.06
+    container_name: rtdetr-v2-trt
+    ports:
+      - "6006:6006" # tensorboard
+    volumes:
+      - ../:/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp:/tmp
+      - ../../weights:/workspace/weights:rw
+      - /home/${USER}/repo/datasets/drone-dataset-(uav)-DatasetNinja/:/workspace/datasets:rw
+    environment:
+      DISPLAY: ${DISPLAY}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    working_dir: /workspace
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    command: bash
