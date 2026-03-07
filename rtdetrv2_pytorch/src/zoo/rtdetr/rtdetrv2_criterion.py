@@ -60,7 +60,7 @@ class RTDETRCriterionv2(nn.Module):
         target_classes = torch.full(src_logits.shape[:2], self.num_classes,
                                     dtype=torch.int64, device=src_logits.device)
         target_classes[idx] = target_classes_o
-        target = F.one_hot(target_classes, num_classes=self.num_classes+1)[..., :-1]
+        target = F.one_hot(target_classes, num_classes=self.num_classes+1)[..., :-1].to(src_logits.dtype)
         loss = torchvision.ops.sigmoid_focal_loss(src_logits, target, self.alpha, self.gamma, reduction='none')
         loss = loss.mean(1).sum() * src_logits.shape[1] / num_boxes
 

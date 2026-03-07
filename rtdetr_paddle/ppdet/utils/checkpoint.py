@@ -282,7 +282,7 @@ def load_pretrain_weight(model, pretrain_weight, ARSL_eval=False):
 
 def save_model(model,
                optimizer,
-               save_dir,
+               output_dir,
                save_name,
                last_epoch,
                ema_model=None):
@@ -293,16 +293,16 @@ def save_model(model,
         model (dict): the model state_dict to save parameters.
         optimizer (paddle.optimizer.Optimizer): the Optimizer instance to
             save optimizer states.
-        save_dir (str): the directory to be saved.
+        output_dir (str): the directory to be saved.
         save_name (str): the path to be saved.
         last_epoch (int): the epoch index.
         ema_model (dict|None): the ema_model state_dict to save parameters.
     """
     if paddle.distributed.get_rank() != 0:
         return
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-    save_path = os.path.join(save_dir, save_name)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    save_path = os.path.join(output_dir, save_name)
     # save model
     if isinstance(model, nn.Layer):
         paddle.save(model.state_dict(), save_path + ".pdparams")
@@ -322,4 +322,4 @@ def save_model(model,
     state_dict = optimizer.state_dict()
     state_dict['last_epoch'] = last_epoch
     paddle.save(state_dict, save_path + ".pdopt")
-    logger.info("Save checkpoint: {}".format(save_dir))
+    logger.info("Save checkpoint: {}".format(output_dir))

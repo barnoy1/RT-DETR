@@ -870,7 +870,7 @@ class Trainer(object):
         return os.path.join(output_dir, "{}".format(name)) + ext
 
     def _get_infer_cfg_and_input_spec(self,
-                                      save_dir,
+                                      output_dir,
                                       prune_input=True,
                                       kl_quant=False):
         image_shape = None
@@ -916,7 +916,7 @@ class Trainer(object):
     
         # Save infer cfg
         _dump_infer_config(self.cfg,
-                           os.path.join(save_dir, 'infer_cfg.yml'), image_shape,
+                           os.path.join(output_dir, 'infer_cfg.yml'), image_shape,
                            self.model)
     
         input_spec = [{
@@ -950,17 +950,17 @@ class Trainer(object):
         self.model.eval()
 
         model_name = os.path.splitext(os.path.split(self.cfg.filename)[-1])[0]
-        save_dir = os.path.join(output_dir, model_name)
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
+        output_dir = os.path.join(output_dir, model_name)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
 
         static_model, pruned_input_spec = self._get_infer_cfg_and_input_spec(
-            save_dir)
+            output_dir)
 
         # dy2st and save model
         paddle.jit.save(
             static_model,
-            os.path.join(save_dir, 'model'),
+            os.path.join(output_dir, 'model'),
             input_spec=pruned_input_spec)
 
-        logger.info("Export model and saved in {}".format(save_dir))
+        logger.info("Export model and saved in {}".format(output_dir))

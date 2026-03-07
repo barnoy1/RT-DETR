@@ -160,7 +160,7 @@ class Checkpointer(Callback):
     def __init__(self, model):
         super(Checkpointer, self).__init__(model)
         self.best_ap = -1000.
-        self.save_dir = os.path.join(self.model.cfg.save_dir,
+        self.output_dir = os.path.join(self.model.cfg.output_dir,
                                      self.model.cfg.filename)
         if hasattr(self.model.model, 'student_model'):
             self.weight = self.model.model.student_model
@@ -216,7 +216,7 @@ class Checkpointer(Callback):
                         save_model(
                             status['weight'],
                             self.model.optimizer,
-                            self.save_dir,
+                            self.output_dir,
                             save_name,
                             epoch_id + 1,
                             ema_model=weight)
@@ -229,14 +229,14 @@ class Checkpointer(Callback):
                         save_model(
                             teacher_model,
                             self.model.optimizer,
-                            self.save_dir,
+                            self.output_dir,
                             save_name,
                             epoch_id + 1,
                             ema_model=student_model)
                         del teacher_model
                         del student_model
                 else:
-                    save_model(weight, self.model.optimizer, self.save_dir,
+                    save_model(weight, self.model.optimizer, self.output_dir,
                                save_name, epoch_id + 1)
 
 
@@ -323,7 +323,7 @@ class WandbCallback(Callback):
             raise e
 
         self.wandb_params = model.cfg.get('wandb', None)
-        self.save_dir = os.path.join(self.model.cfg.save_dir,
+        self.output_dir = os.path.join(self.model.cfg.output_dir,
                                      self.model.cfg.filename)
         if self.wandb_params is None:
             self.wandb_params = {}
@@ -356,7 +356,7 @@ class WandbCallback(Callback):
 
     def save_model(self,
                    optimizer,
-                   save_dir,
+                   output_dir,
                    save_name,
                    last_epoch,
                    ema_model=None,
@@ -364,7 +364,7 @@ class WandbCallback(Callback):
                    fps=None,
                    tags=None):
         if dist.get_world_size() < 2 or dist.get_rank() == 0:
-            model_path = os.path.join(save_dir, save_name)
+            model_path = os.path.join(output_dir, save_name)
             metadata = {}
             metadata["last_epoch"] = last_epoch
             if ap:
@@ -442,7 +442,7 @@ class WandbCallback(Callback):
                     tags = ["latest", "epoch_{}".format(epoch_id)]
                     self.save_model(
                         self.model.optimizer,
-                        self.save_dir,
+                        self.output_dir,
                         save_name,
                         epoch_id + 1,
                         self.model.use_ema,
@@ -486,7 +486,7 @@ class WandbCallback(Callback):
 
                             self.save_model(
                                 self.model.optimizer,
-                                self.save_dir,
+                                self.output_dir,
                                 save_name,
                                 last_epoch=epoch_id + 1,
                                 ema_model=self.model.use_ema,

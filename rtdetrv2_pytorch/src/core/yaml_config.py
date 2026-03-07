@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
+from torch.utils.data import ConcatDataset
 
 import re 
 import copy
@@ -166,6 +167,33 @@ class YAMLConfig(BaseConfig):
         if 'total_batch_size' in global_cfg[name]:
             # pop unexpected key for dataloader init
             _ = global_cfg[name].pop('total_batch_size')
+
+        dataset_cfg = global_cfg[name].get('dataset')
+        if isinstance(dataset_cfg, dict):
+            dataset_entries = dataset_cfg.get('datasets')
+            if dataset_entries is not None:
+                if not isinstance(dataset_entries, list) or not dataset_entries:
+                    raise ValueError(f'{name}.dataset.datasets must be a non-empty list')
+
+                built_datasets = []
+                for index, entry in enumerate(dataset_entries):
+                    if not isinstance(entry, dict):
+                        raise ValueError(f'{name}.dataset.datasets[{index}] must be a mapping')
+                    if 'img_folder' not in entry or 'ann_file' not in entry:
+                        raise ValueError(f'{name}.dataset.datasets[{index}] must define img_folder and ann_file')
+
+                    single_dataset_cfg = copy.deepcopy(dataset_cfg)
+                    single_dataset_cfg.pop('datasets', None)
+                    single_dataset_cfg.update(entry)
+                    single_dataset_name = f'__{name}_dataset_{index}'
+                    global_cfg[single_dataset_name] = single_dataset_cfg
+                    built_datasets.append(create(single_dataset_name, global_cfg))
+
+                merged_dataset = built_datasets[0] if len(built_datasets) == 1 else ConcatDataset(built_datasets)
+                merged_dataset_name = f'__{name}_merged_dataset'
+                global_cfg[merged_dataset_name] = merged_dataset
+                global_cfg[name]['dataset'] = merged_dataset_name
+
         print(f'building {name} with batch_size={bs}...')
         loader = create(name, global_cfg, batch_size=bs)
         loader.shuffle = self.yaml_cfg[name].get('shuffle', False)      

@@ -230,7 +230,7 @@ def draw_pose(image,
               results,
               visual_thread=0.6,
               save_name='pose.jpg',
-              save_dir='output',
+              output_dir='output',
               returnimg=False,
               ids=None):
     try:

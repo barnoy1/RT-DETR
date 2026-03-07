@@ -11,7 +11,8 @@ PACKAGE_PARENT = Path(__file__).resolve().parents[5]
 if str(PACKAGE_PARENT) not in sys.path:
     sys.path.insert(0, str(PACKAGE_PARENT))
 
-from nn_framework.model.base import CheckpointAdapter
+from infra.engine.model.base import CheckpointAdapter
+from infra.common.logging import logger
 
 
 class RTDETRCheckpointAdapter(CheckpointAdapter):
@@ -33,7 +34,7 @@ class RTDETRCheckpointAdapter(CheckpointAdapter):
 
         for fallback in candidates:
             if fallback.exists():
-                print(f"Warning: checkpoint not found at {candidate}, using {fallback}")
+                logger.warning("checkpoint not found at {}, using {}", candidate, fallback)
                 return fallback
 
         checked = "\n  - ".join(str(p) for p in [candidate, *candidates])
@@ -74,7 +75,6 @@ class RTDETRCheckpointAdapter(CheckpointAdapter):
         self,
         model: nn.Module,
         state_dict: Dict[str, torch.Tensor],
-        allow_mismatch: bool = False,
     ) -> None:
         checkpoint_classes = self.get_checkpoint_num_classes(state_dict)
         model_classes = self.get_model_num_classes(model)
@@ -89,12 +89,8 @@ class RTDETRCheckpointAdapter(CheckpointAdapter):
             "Checkpoint/model class mismatch detected: "
             f"checkpoint classes={checkpoint_classes}, model classes={model_classes}. "
             "This leaves detection score heads uninitialized and usually produces very low-confidence detections. "
-            "Use a checkpoint trained with the same num_classes as inference config, "
-            "or set --allow-class-mismatch to bypass this safety check."
+            "Use a checkpoint trained with the same num_classes as inference config."
         )
-        if allow_mismatch:
-            print(f"Warning: {message}")
-            return
         raise RuntimeError(message)
 
     def safe_load_state_dict(self, model: nn.Module, state_dict: Dict[str, torch.Tensor]) -> Tuple[int, int, int]:

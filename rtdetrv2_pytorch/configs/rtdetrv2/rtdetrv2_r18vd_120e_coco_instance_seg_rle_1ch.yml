@@ -10,7 +10,7 @@ output_dir: ./output/rtdetrv2_r18vd_120e_coco_instance_seg_rle
 
 PResNet:
   depth: 18
-  in_channels: 3
+  in_channels: 1
   freeze_at: -1
   freeze_norm: False
   pretrained: True
